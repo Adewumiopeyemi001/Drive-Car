@@ -7,4 +7,5 @@ export const carSchema = {
   numberOfDays: Number,
   amountPerDay: Number,
   userId: String, // Add userId field
+  isBooked: Boolean,
 };
