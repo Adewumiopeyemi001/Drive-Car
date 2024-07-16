@@ -44,8 +44,8 @@ export const createCar = async (req, res) => {
       images,
       numberOfDays,
       amountPerDay,
-      isBooked,
       userId, // Include userId in the values array
+      isBooked,
     ];
 
     const result = await pool.query(query, values);

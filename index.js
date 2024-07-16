@@ -7,6 +7,7 @@ import usersRouter from './src/routes/user.routes.js';
 import passport from './src/config/passport.js';
 import authRoutes from './src/routes/auth.js'; 
 import carRoutes from './src/routes/car.routes.js';
+import bookingRoutes from './src/routes/booking.routes.js';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ app.get('/', (req, res) => {
 app.use('/api/users', usersRouter);
 app.use('/api', authRoutes);
 app.use('/api/car', carRoutes);
+app.use('/api/booking', bookingRoutes);
 
 const server = app.listen(PORT, async () => {
   try {
