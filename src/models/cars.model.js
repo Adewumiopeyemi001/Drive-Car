@@ -4,8 +4,8 @@ export const carSchema = {
   year: Number,
   manufacturer: String,
   images: [String],
-  numberOfDays: Number,
-  amountPerDay: Number,
+  number_of_days: Number,
+  amount_per_day: Number,
   userId: String, // Add userId field
   isBooked: Boolean,
 };

@@ -6,6 +6,7 @@ import {
   getCarById,
   getAllCars,
   filterCar,
+  searchAndSortCars,
 } from '../controllers/cars.controllers.js';
 import upload from '../public/images/multer.js';
 import { authenticateUser } from '../middleware/auth.js';
@@ -19,5 +20,6 @@ router.delete('/deletecar/:carId', authenticateUser, deleteCar);
 router.get('/getcar/:carId', getCarById);
 router.get('/getallcars', getAllCars);
 router.get('/filter', filterCar);
+router.get('/sort', searchAndSortCars);
 
 export default router;

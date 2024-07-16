@@ -204,7 +204,7 @@ export const getAllCars = async(req, res) => {
 };
 
 export const filterCar = async (req, res) => {
-  const { manufacturer, name, year, isBooked } = req.query;
+  const { manufacturer, name, year, isBooked, minPrice, maxPrice } = req.query;
   let query = `SELECT * FROM cars WHERE 1=1 `;
   const values = [];
   let paramIndex = 1;
@@ -228,6 +228,15 @@ export const filterCar = async (req, res) => {
     query += `AND isBooked = $${paramIndex++} `;
     values.push(isBooked === 'true');
   }
+   if (minPrice) {
+     query += `AND amount_per_day >= $${paramIndex++} `;
+     values.push(minPrice);
+   }
+
+   if (maxPrice) {
+     query += `AND amount_per_day <= $${paramIndex++} `;
+     values.push(maxPrice);
+   }
 
   try {
     const result = await pool.query(query, values);
@@ -244,6 +253,64 @@ export const filterCar = async (req, res) => {
     });
   }
 };
+
+export const searchAndSortCars = async (req, res) => {
+  const { name, manufacturer, year, isBooked, sortBy, sortOrder } =
+    req.query;
+  let query = `SELECT * FROM cars WHERE 1=1 `;
+  const values = [];
+  let paramIndex = 1;
+
+  if (manufacturer) {
+    query += `AND manufacturer ILIKE $${paramIndex++} `;
+    values.push(`%${manufacturer}%`);
+  }
+
+  if (name) {
+    query += `AND name ILIKE $${paramIndex++} `;
+    values.push(`%${name}%`);
+  }
+
+  if (year) {
+    query += `AND year = $${paramIndex++} `;
+    values.push(year);
+  }
+
+  if (isBooked === 'true' || isBooked === 'false') {
+    query += `AND isBooked = $${paramIndex++} `;
+    values.push(isBooked === 'true');
+  }
+
+  // Sorting logic
+  const validSortFields = [
+    'name',
+    'manufacturer',
+    'year',
+    'amount_per_day',
+    'isBooked',
+  ];
+  const validSortOrders = ['asc', 'desc'];
+  const sortField = validSortFields.includes(sortBy) ? sortBy : 'name'; // Default sort field
+  const order = validSortOrders.includes(sortOrder) ? sortOrder : 'asc'; // Default sort order
+
+  query += ` ORDER BY ${sortField} ${order}`;
+
+  try {
+    const result = await pool.query(query, values);
+    return successResMsg(res, 200, {
+      success: true,
+      message: 'Cars retrieved and sorted successfully',
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    return errorResMsg(res, 500, {
+      error: error.message,
+      message: 'Internal Server Error',
+    });
+  }
+};
+
 
 
 
