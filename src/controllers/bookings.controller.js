@@ -250,3 +250,43 @@ export const approveBooking = async (req, res) => {
         });
     }
 };
+
+export const deleteBooking = async(req, res) => { 
+    const { bookingId } = req.params;
+    const userId = req.user._id;
+    // console.log(bookingId);
+    if (!userId || req.user.role !== 2) {
+      return errorResMsg(res, 401, 'Unauthorized');
+    }
+    
+    if (!bookingId) {
+        return errorResMsg(res, 400, 'Booking not found');
+    }
+    try {
+        const query = `DELETE FROM bookings WHERE id = $1 AND user_id = $2 RETURNING *`;
+        const values = [bookingId, userId];
+        const result = await pool.query(query, values);
+
+        // console.log(`Executing query: ${query} with values: ${values}`);
+        
+        if (result.rows.length === 0) {
+            return errorResMsg(
+              res,
+              404,
+              'Booking not found or you are not authorized to delete this booking'
+            );
+        }
+        return successResMsg(res, 200, {
+            success: true,
+            message: 'Booking deleted successfully',
+            data: result.rows[0],
+        });
+        
+    } catch (error) {
+        console.error(error);
+        return errorResMsg(res, 500, {
+            error: error.message,
+            message: 'Internal Server Error',
+        });
+    }
+};
