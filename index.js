@@ -11,6 +11,7 @@ import authRoutes from './src/routes/auth.js';
 import carRoutes from './src/routes/car.routes.js';
 import bookingRoutes from './src/routes/booking.routes.js';
 import facebookAuthRoute from './src/controllers/facebook.auth.js';
+import paymentRoutes from './src/routes/payment.routes.js';
 
 dotenv.config();
 
@@ -42,6 +43,7 @@ app.use('/api', authRoutes);
 app.use('/api/car', carRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/auth/facebook', facebookAuthRoute);
+app.use('/api/payment', paymentRoutes);
 
 const server = app.listen(PORT, async () => {
   try {
