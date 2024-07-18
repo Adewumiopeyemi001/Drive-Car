@@ -15,6 +15,7 @@ passport.use(
       clientSecret: process.env.FACEBOOK_APP_SECRET,
       callbackURL: process.env.FACEBOOK_CALLBACK_URL,
       // profileFields: ['id', 'emails', 'name'], // Adjust the fields as needed
+      profileFields: ['id', 'displayName', 'emails'], // Adjust fields as needed
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
