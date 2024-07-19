@@ -11,7 +11,7 @@ This project is an API service built with Node.js and Express.js for managing a 
 5. **Authentication**: Secure endpoints with user authentication and integrate Facebook OAuth for login.
 
 ### Project Structure
-** **controllers**: Contains controller files for user, car, booking, and payment
+* **controllers**: Contains controller files for user, car, booking, and payment
 **middleware**: Contains middleware files for authentication and authorization
 **models**: Contains model files for user, car, and booking
 **routes**: Contains route files for user, car, booking, and payment
