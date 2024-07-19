@@ -1,27 +1,67 @@
 import { pool } from '../config/postgress-db.js';
-import { initializePayment } from '../middleware/paystack.js';
-
+import { initializePayment, verifyPayment } from '../middleware/paystack.js';
+import User from '../models/users.js'; // Ensure the path is correct
 
 export const payment = async (req, res) => {
-  const { userId, carId, bookingId, amount, email } = req.body;
+  const { userId, bookingId } = req.body; // Removed amount and carId from request body
   const bookingReference = `BOOK_${Date.now()}`;
+  const paymentReference = `PAY_${Date.now()}`;
 
   try {
-    const paymentData = await initializePayment(email, amount, bookingReference);
+    // Fetch user from MongoDB
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Fetch booking details from PostgreSQL
+    const bookingQuery = `SELECT * FROM bookings WHERE id = $1`;
+    const bookingResult = await pool.query(bookingQuery, [bookingId]);
+    if (bookingResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+    const booking = bookingResult.rows[0];
+    const amount = booking.total_amount; // Use total amount from booking
+
+    const email = user.email; // Get email from user data
+
+    const paymentData = await initializePayment(
+      email,
+      amount,
+      paymentReference
+    );
 
     const query = `
       INSERT INTO payments (user_id, car_id, booking_id, amount, booking_reference, payment_reference, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING *
     `;
-    const values = [userId, carId, bookingId, amount, bookingReference, paymentData.reference, 'pending'];
+    const values = [
+      userId,
+      booking.car_id, // Use carId from booking
+      bookingId,
+      amount,
+      bookingReference,
+      paymentReference,
+      'pending',
+    ];
 
     const result = await pool.query(query, values);
 
     res.status(200).json({
       success: true,
-      message: 'Payment initialized successfully',
-      data: result.rows[0],
+      message:
+        'Payment initialized successfully. Please complete the payment process.',
+      data: {
+        payment: result.rows[0],
+        paymentUrl: paymentData.authorization_url, // URL to redirect user for payment
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -31,7 +71,7 @@ export const payment = async (req, res) => {
   }
 };
 
-export const verifyPayment = async (req, res) => {
+export const verify = async (req, res) => {
   const { reference } = req.body;
 
   try {
@@ -47,11 +87,22 @@ export const verifyPayment = async (req, res) => {
       const updateBookingQuery = `
         UPDATE bookings
         SET payment_status = 'successful', updated_at = CURRENT_TIMESTAMP
-        WHERE booking_reference = $1
+        WHERE id = $1
         RETURNING *
       `;
-      await pool.query(updatePaymentQuery, [reference]);
-      await pool.query(updateBookingQuery, [paymentData.reference]);
+      const paymentResult = await pool.query(updatePaymentQuery, [reference]);
+      const bookingResult = await pool.query(updateBookingQuery, [
+        paymentData.metadata.booking_id,
+      ]);
+
+      res.status(200).json({
+        success: true,
+        message: 'Payment verified successfully',
+        data: {
+          payment: paymentResult.rows[0],
+          booking: bookingResult.rows[0],
+        },
+      });
     } else {
       const updatePaymentQuery = `
         UPDATE payments
@@ -59,14 +110,14 @@ export const verifyPayment = async (req, res) => {
         WHERE payment_reference = $1
         RETURNING *
       `;
-      await pool.query(updatePaymentQuery, [reference]);
-    }
+      const paymentResult = await pool.query(updatePaymentQuery, [reference]);
 
-    res.status(200).json({
-      success: true,
-      message: 'Payment verified successfully',
-      data: paymentData,
-    });
+      res.status(200).json({
+        success: true,
+        message: 'Payment verification failed',
+        data: paymentResult.rows[0],
+      });
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
