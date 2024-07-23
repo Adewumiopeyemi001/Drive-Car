@@ -41,6 +41,15 @@ const userSchema = new mongoose.Schema(
     resetPasswordExpires: {
       type: Date,
     },
+    hasReturnedCars: {
+      type: Boolean,
+      default: true,
+    },
+    hasPenalties: {
+      type: Boolean,
+      default: false,
+    },
+    penalties: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Penalty' }],
   },
   {
     timestamps: true,
