@@ -82,6 +82,7 @@ export const login = async (req, res) => {
     }
 
     const passwordMatch = await checkExistingPassword(password, user);
+  
     if (!passwordMatch) {
       return errorResMsg(res, 400, 'Password Does Not Match');
     }

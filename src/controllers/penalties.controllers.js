@@ -2,6 +2,11 @@ import { errorResMsg, successResMsg } from '../lib/response.js';
 import Penalty from '../models/penalties.model.js';
 import User from '../models/users.js';
 import mongoose from 'mongoose';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import path from 'path';
+import emailSenderTemplate from '../middleware/email.js';
+import ejs from 'ejs';
 
 export const createPenalty = async (req, res) => {
   const {
@@ -52,6 +57,26 @@ export const createPenalty = async (req, res) => {
     userInfo.hasPenalties = true;
     userInfo.penalties.push(penalty._id);
     await userInfo.save();
+
+      const currentFilePath = fileURLToPath(import.meta.url);
+      const currentDir = dirname(currentFilePath);
+      const templatePath = path.join(currentDir, '../public/emails/penaltyNotification.ejs');
+
+      const emailContent = await ejs.renderFile(templatePath, {
+        title: 'Penalty Notification',
+        emailOrUsername: userInfo.userName, // Assuming you want to display the user's email or username
+        penaltyId: penalty._id,
+        penaltyType,
+        penaltyDescription,
+        penaltyDate,
+        penaltyAmount,
+      });
+
+      await emailSenderTemplate(
+        emailContent,
+        'Penalty Notification',
+        userInfo.email
+      );
 
     return successResMsg(res, 201, {
       success: true,
@@ -154,6 +179,11 @@ export const updatePenalty = async (req, res) => {
     if (!penaltyInfo) {
       return errorResMsg(res, 404, 'Penalty not found');
     }
+    // Find the user associated with the penalty
+    const userInfo = await User.findById(penaltyInfo.userId);
+    if (!userInfo) {
+      return errorResMsg(res, 404, 'User not found');
+    }
 
     // Prepare update object based on provided fields
     const updateFields = {};
@@ -170,6 +200,24 @@ export const updatePenalty = async (req, res) => {
     if (!updatedPenalty) {
       return errorResMsg(res, 404, 'Penalty not found');
     }
+    const currentFilePath = fileURLToPath(import.meta.url);
+    const currentDir = dirname(currentFilePath);
+    const templatePath = path.join(
+      currentDir,
+      '../public/emails/penaltyUpdate.ejs'
+    );
+
+    const emailContent = await ejs.renderFile(templatePath, {
+      title: 'Penalty Notification Update',
+      penaltyDescription,
+      penaltyAmount,
+    });
+
+    await emailSenderTemplate(
+      emailContent,
+      'Penalty Notification Update',
+      userInfo.email
+    );
 
     return successResMsg(res, 200, {
       success: true,
@@ -213,18 +261,27 @@ export const deletePenalty = async (req, res) => {
       return errorResMsg(res, 404, 'User not found');
     }
 
-    // Ensure all required fields are set
-    if (!userInfo.password) {
-      return errorResMsg(res, 500, 'User password is required');
-    }
-
     userInfo.hasPenalties = false;
     userInfo.penalties = [];
     await userInfo.save();
 
-    // Optionally send an email notification to the user
-    // const userEmail = userInfo.email; // Assuming userInfo contains email
-    // await sendPenaltyDeletionEmail(userEmail, penaltyInfo);
+    const currentFilePath = fileURLToPath(import.meta.url);
+    const currentDir = dirname(currentFilePath);
+    const templatePath = path.join(
+      currentDir,
+      '../public/emails/deletePenalty.ejs'
+    );
+
+    const emailContent = await ejs.renderFile(templatePath, {
+      title: 'Penalty Deleted Successfully',
+    
+    });
+
+    await emailSenderTemplate(
+      emailContent,
+      'Penalty Deleted Successfully',
+      userInfo.email
+    );
 
     return successResMsg(res, 200, {
       success: true,
@@ -238,46 +295,3 @@ export const deletePenalty = async (req, res) => {
     });
   }
 };
-
-// export const deletePenalty = async (req, res) => {
-
-//   const { penaltyId } = req.params;
-//   const user = req.user;
-
-//   if (!user || user.role !== 2) {
-//     return errorResMsg(res, 401, 'Unauthorized');
-//   }
-
-//   if (!penaltyId) {
-//     return errorResMsg(res, 400, 'Penalty ID is required');
-//   }
-
-//   try {
-//     if (!mongoose.Types.ObjectId.isValid(penaltyId)) {
-//       return errorResMsg(res, 400, 'Invalid penalty ID format');
-//     }
-
-//     const penaltyInfo = await Penalty.findByIdAndDelete(penaltyId);
-//     if (!penaltyInfo) {
-//       return errorResMsg(res, 404, 'Penalty not found');
-//     }
-//     user.hasPenalties = false;
-//     user.penalties = [];
-//     await user.save();
-
-//     // Optionally send an email notification to the user
-//     // const userEmail = penaltyInfo.userEmail; // Assuming penaltyInfo contains userEmail
-//     // await sendPenaltyDeletionEmail(userEmail, penaltyInfo);
-
-//     return successResMsg(res, 200, {
-//       success: true,
-//       message: 'Penalty deleted successfully',
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return errorResMsg(res, 500, {
-//       error: error.message,
-//       message: 'Internal Server Error',
-//     });
-//   }
-// };
