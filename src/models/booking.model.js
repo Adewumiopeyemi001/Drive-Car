@@ -1,4 +1,4 @@
-export const carSchema = {
+export const bookingSchema = {
     user_id: String,
     car_id: Number,
     start_date: Date,

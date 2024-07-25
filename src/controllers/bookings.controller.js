@@ -1,62 +1,70 @@
 import { pool } from '../config/postgress-db.js';
 import { errorResMsg, successResMsg } from '../lib/response.js';
 import { v4 as uuidv4 } from 'uuid';
+import User from '../models/users.js';
 
 
-export const createBooking = async (req, res) => { 
-    const { carId, startDate, returnDate } = req.body;
-    const userId = req.user._id; 
-    const bookingReference = uuidv4();
-// console.log(userId);
-    if (!userId) {
-        return errorResMsg(res, 401, 'Unauthorized');
+export const createBooking = async (req, res) => {
+  const { carId, startDate, returnDate } = req.body;
+  const userId = req.user._id;
+  const bookingReference = uuidv4();
+
+  if (!userId) {
+    return errorResMsg(res, 401, 'Unauthorized');
+  }
+
+  if (!carId || !startDate || !returnDate) {
+    return errorResMsg(res, 400, 'All fields are required');
+  }
+
+  try {
+    // Fetch the user from MongoDB to check penalties
+    const user = await User.findById(userId);
+
+    if (!user || user.hasPenalties === true) {
+      return errorResMsg(res, 400, 'User must not have any penalties');
     }
 
-    if (!carId || !startDate || !returnDate) {
-        return errorResMsg(res, 400, 'All fields are required');
+    // Fetch the car from PostgreSQL
+    const carResult = await pool.query(`SELECT * FROM cars WHERE id = $1`, [
+      carId,
+    ]);
+    const car = carResult.rows[0];
+
+    if (!car) {
+      return errorResMsg(res, 404, 'Car not found');
     }
 
-    try {
-        const carResult = await pool.query(`SELECT * FROM cars WHERE id =$1`, [carId]);
-        const car = carResult.rows[0];
+    if (car.isbooked) {
+      return errorResMsg(res, 409, 'Car already booked');
+    }
 
-        if (!car) { 
-            return errorResMsg(res, 404, 'Car not found');
-        }
-        if (car.isBooked) {
-            return errorResMsg(res, 409, 'Car already booked');
-        }
+    const days =
+      (new Date(returnDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+    const totalAmount = days * car.amount_per_day;
 
-        const days =
-          (new Date(returnDate) - new Date(startDate)) / (1000 * 60 * 60 * 24);
-
-        const totalAmount = days * car.amount_per_day;
-
-        // console.log(`Days: ${days}`);
-        // console.log(`Amount per day: ${car.amount_per_day}`);
-        // console.log(`Total amount: ${totalAmount}`);
-
-        const bookingResult = await pool.query(
-          `INSERT INTO bookings (user_id, car_id, start_date, return_date, total_amount, booking_reference, is_approved, payment_status, is_cancelled)
+    // Insert the booking into the bookings table
+    const bookingResult = await pool.query(
+      `INSERT INTO bookings (user_id, car_id, start_date, return_date, total_amount, booking_reference, is_approved, payment_status, is_cancelled)
        VALUES ($1, $2, $3, $4, $5, $6, false, 'pending', false) RETURNING *`,
-          [userId, carId, startDate, returnDate, totalAmount, bookingReference]
-        );
+      [userId, carId, startDate, returnDate, totalAmount, bookingReference]
+    );
 
-        await pool.query(`UPDATE cars SET isBooked = true WHERE id = $1`, [carId]);
+    // Update the car's isBooked status to true
+    await pool.query(`UPDATE cars SET isbooked = true WHERE id = $1`, [carId]);
 
-        return successResMsg(res, 200, {
-            success: true,
-            message: 'Booking created successfully',
-            data: bookingResult.rows[0],
-        });
-    } catch (error) {
-        console.error(error);
-        return errorResMsg(res, 500, {
-            error: error.message,
-            message: 'Internal Server Error',
-        });
-        
-    }
+    return successResMsg(res, 200, {
+      success: true,
+      message: 'Booking created successfully',
+      data: bookingResult.rows[0],
+    });
+  } catch (error) {
+    console.error(error);
+    return errorResMsg(res, 500, {
+      error: error.message,
+      message: 'Internal Server Error',
+    });
+  }
 };
 
 export const getAllBookings = async (req, res) => { 
@@ -263,25 +271,27 @@ export const deleteBooking = async(req, res) => {
         return errorResMsg(res, 400, 'Booking not found');
     }
     try {
-        const query = `DELETE FROM bookings WHERE id = $1 AND user_id = $2 RETURNING *`;
-        const values = [bookingId, userId];
-        const result = await pool.query(query, values);
+      // Check if the booking exists
+      const bookingResult = await pool.query(
+        `SELECT * FROM bookings WHERE id = $1`,
+        [bookingId]
+      );
+      const booking = bookingResult.rows[0];
 
-        // console.log(`Executing query: ${query} with values: ${values}`);
-        
-        if (result.rows.length === 0) {
-            return errorResMsg(
-              res,
-              404,
-              'Booking not found or you are not authorized to delete this booking'
-            );
-        }
-        return successResMsg(res, 200, {
-            success: true,
-            message: 'Booking deleted successfully',
-            data: result.rows[0],
-        });
-        
+      if (!booking) {
+        return errorResMsg(res, 404, 'Booking not found');
+      }
+
+      // Delete the booking
+      const deleteResult = await pool.query(
+        `DELETE FROM bookings WHERE id = $1 RETURNING *`,
+        [bookingId]
+      );
+      return successResMsg(res, 200, {
+        success: true,
+        message: 'Booking deleted successfully',
+        data: deleteResult.rows[0],
+      });
     } catch (error) {
         console.error(error);
         return errorResMsg(res, 500, {
