@@ -3,13 +3,12 @@ import { initializePayment, verifyPayment } from '../middleware/paystack.js';
 import User from '../models/users.js'; // Ensure the path is correct
 
 export const payment = async (req, res) => {
-  const { userId, bookingId } = req.body; // Removed amount and carId from request body
-  const bookingReference = `BOOK_${Date.now()}`;
+  const { bookingId } = req.body;
   const paymentReference = `PAY_${Date.now()}`;
 
   try {
     // Fetch user from MongoDB
-    const user = await User.findById(userId);
+    const user = await User.findById(email);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -38,18 +37,15 @@ export const payment = async (req, res) => {
     );
 
     const query = `
-      INSERT INTO payments (user_id, car_id, booking_id, amount, booking_reference, payment_reference, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO payments (booking_id, amount, payment_reference, payment_date)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
     `;
     const values = [
-      userId,
-      booking.car_id, // Use carId from booking
       bookingId,
       amount,
-      bookingReference,
       paymentReference,
-      'pending',
+      new Date(), // Use current date for payment date
     ];
 
     const result = await pool.query(query, values);

@@ -1,12 +1,6 @@
 export const paymentSchema = {
-  id: String,
-  userId: String,
-  carId: Number,
   bookingId: Number,
   amount: Number,
-  bookingReference: String,
-  paymentReference: String,
-  status: String,
-  createdAt: Date,
-  updatedAt: Date,
+  payment_reference: String,
+  payment_date: Date, // Corrected the typo from "payement_date" to "payment_date"
 };
