@@ -5,9 +5,7 @@ import passport from 'passport';
 import session from 'express-session';
 import { connectDB } from './src/config/db.js';
 import usersRouter from './src/routes/user.routes.js';
-// import session from 'express-session';
-// import passport from './src/config/passport.js';
-import authRoutes from './src/routes/auth.js'; 
+import authRoutes from './src/routes/auth.js';
 import carRoutes from './src/routes/car.routes.js';
 import bookingRoutes from './src/routes/booking.routes.js';
 import facebookAuthRoute from './src/controllers/facebook.auth.js';
@@ -16,17 +14,11 @@ import penaltyRoutes from './src/routes/penalties.routes.js';
 
 dotenv.config();
 
-// app.use(
-//   session({
-//     secret: 'your_secret_key',
-//     resave: false,
-//     saveUninitialized: false,
-//   })
-// );
-
 const app = express();
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 const PORT = process.env.PORT || 3000;
 
 app.use(
@@ -34,6 +26,19 @@ app.use(
 );
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.use((req, res, next) => {
+  console.log(
+    `Request Method: ${req.method}, Request URL: ${req.url}, Request Body:`,
+    req.body
+  );
+  next();
+});
+
+app.use((req, res, next) => {
+  console.log('Incoming request body:', req.body);
+  next();
+});
 
 app.get('/', (req, res) => {
   res.send('Welcome to DriveCar Motor');

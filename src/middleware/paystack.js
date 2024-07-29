@@ -21,11 +21,23 @@ const initializePayment = async (email, amount, reference) => {
 
 // Function to verify payment
 const verifyPayment = async (reference) => {
+  console.log('Verifying payment with reference:', reference);
+
+  if (!reference) {
+    throw new Error('Payment reference is required');
+  }
+
   try {
-    const response = await paystackClient.transaction.verify(reference);
+    const response = await paystackClient.transaction.verify({
+      reference,
+    });
+
+    console.log('Paystack response:', response);
+
     return response.data;
   } catch (error) {
-    throw error;
+    console.error('Error verifying payment:', error);
+    throw new Error('Internal server error');
   }
 };
 
