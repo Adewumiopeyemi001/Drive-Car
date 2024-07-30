@@ -1,12 +1,14 @@
 import pkg from 'pg';
 const { Pool } = pkg;
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // PostgreSQL connection using DATABASE_URL from Render
 const pool = new Pool({
-  connectionString:
-    process.env.POSTGRES_URL,
+  connectionString: process.env.POSTGRES_URL,
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, // This can be set to true in a production environment for stricter SSL validation
   },
 });
 
@@ -19,3 +21,5 @@ pool.connect((err) => {
 });
 
 export { pool };
+
+

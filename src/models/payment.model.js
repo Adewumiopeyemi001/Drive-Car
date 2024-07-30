@@ -4,5 +4,5 @@ export const paymentSchema = {
   payment_reference: String,
   payment_date: Date,
   updated_at: Date,
-  status: String, // Add this line
+  status: String, 
 };
