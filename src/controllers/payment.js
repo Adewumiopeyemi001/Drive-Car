@@ -182,58 +182,6 @@ export const verify = async (req, res) => {
   }
 };
 
-// export const paymentReceipts = async (req, res) => {
-
-//   try {
-//     const { bookingId } = req.body;
-
-//     // Fetch data from models
-//     const user = await getUserByBookingId(bookingId);
-//     console.log(user);
-//     const car = await getCarByBookingId(bookingId);
-//     console.log(car);
-//     const booking = await getBooking(bookingId);
-//      console.log(booking);
-//     const payment = await getPaymentByBookingId(bookingId);
-
-//     // Create PDF
-//     const pdfPath = await createReceiptPDF({ user, car, booking, payment });
-
-//      const currentFilePath = fileURLToPath(import.meta.url);
-//      const currentDir = dirname(currentFilePath);
-//      const templatePath = path.join(currentDir, '../public/emails/receipt.ejs');
-
-//     // Send email
- 
-//      await ejs.renderFile(
-//        templatePath,
-//        {
-//          title: `Please find your receipt attached`,
-//          body: 'Your Receipt',
-//        },
-//        async (err, data) => {
-//          await emailSenderTemplate(
-//            user.email,
-//            'Please find your receipt attached.',
-//            [{ path: pdfPath }]
-//          );
-//        }
-//     );
-//     return successResMsg(res, 200, {
-//       success: true,
-//       message: 'Payment receipt sent successfully',
-//     });
-
-//   } catch (error) {
-//     console.error('Error creating payment receipt:', error);
-//     return errorResMsg(res, 500, {
-//       success: false,
-//       message: 'Internal Server Error',
-//     });
-    
-//   }
-// };
-
 export const paymentReceipts = async (req, res) => {
   try {
     const { bookingId } = req.body;
